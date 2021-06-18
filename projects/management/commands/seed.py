@@ -3,12 +3,16 @@ import csv
 from datetime import datetime
 
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from projects.models import Project
+from categories.models import Category, Subcategory
+from locations.models import Location
+from creators.models import Creator
 
 
 def convert_timestamp_to_datetime(timestamp: str):
-    return datetime.fromtimestamp(int(timestamp))
+    return datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
 
 
 class Command(BaseCommand):
@@ -21,8 +25,29 @@ class Command(BaseCommand):
         project_path = kwargs["projects_path"]
 
         with open(project_path) as file:
-            project_data = csv.DictReader(file, delimiter=',')
+            project_data = csv.DictReader(file, delimiter=",")
             row = next(project_data)
+
+        category = Category.objects.get_or_create(
+            name=row["category_name"],
+        )[0]
+
+        subcategory = Subcategory.objects.get_or_create(
+            name=row["subcategory"],
+            category=category,
+        )[0]
+
+        location = Location.objects.get_or_create(
+            name=row["location_name"],
+            localized_name=row["location_localized_name"],
+            country_full=row["location_expanded_country"],
+            country=row["location_country"],
+            state=row["location_state"],
+        )[0]
+
+        creator = Creator.objects.get_or_create(
+            name=row["creator_name"], slug=row["creator_slug"]
+        )[0]
 
         project = Project.objects.get_or_create(
             name=row["name"],
@@ -39,5 +64,9 @@ class Command(BaseCommand):
             state_changed_at=convert_timestamp_to_datetime(
                 row["state_changed_at"],
             ),
+            subcategory=subcategory,
+            location=location,
+            creator=creator,
         )[0]
 
+        print(project.__dict__)
