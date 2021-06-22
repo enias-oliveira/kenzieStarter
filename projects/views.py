@@ -6,6 +6,9 @@ from .filters import ProjectFilter
 
 
 class ProjectViewSet(ReadOnlyModelViewSet):
-    queryset = Project.objects.all()
+    queryset = Project.objects.prefetch_related(
+        "subcategory", "subcategory__category", "location", "creator"
+    )
+
     serializer_class = ProjectSerializer
     filterset_class = ProjectFilter
